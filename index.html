@@ -136,6 +136,13 @@
   <div class="toast" id="toast"></div>
 
   <script>
+    fetch('config.json')
+  .then(r => r.json())
+  .then(cfg => { 
+    markets = cfg.markets; 
+    renderMarkets(); 
+  });
+
   const STORAGE_KEYS = {
     markets: 'cm_edit_markets',
     categories: 'cm_edit_categories',
