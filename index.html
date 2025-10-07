@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CareMarket – 퀵 리플라이 & 가격계산기 (완성형)</title>
+  <title>CareMarket – 계산기 & 템플릿 (Editable)</title>
   <meta name="theme-color" content="#0ea5e9" />
   <style>
-    :root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--brand:#0ea5e9;--ok:#10b981;--warn:#f59e0b;--danger:#ef4444}
-    *{box-sizing:border-box} body{margin:0;font-family:Pretendard,system-ui,-apple-system,Segoe UI,Roboto,Noto Sans KR,sans-serif;background:#0b1220;color:var(--text)}
-    .wrap{max-width:960px;margin:auto;padding:20px}
-    h1{font-size:20px;font-weight:700;margin:0 0 10px}
+    :root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb;--brand:#0ea5e9}
+    *{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Pretendard,Noto Sans KR,sans-serif;background:#0b1220;color:var(--text)}
+    .wrap{max-width:1000px;margin:auto;padding:20px}
+    h1{font-size:20px;margin:0 0 10px}
     .tabs{display:flex;gap:6px;margin:16px 0 10px}
     .tab{padding:10px 14px;border-radius:12px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;cursor:pointer}
     .tab.active{background:#0ea5e922;border-color:#0ea5e9}
@@ -18,100 +18,160 @@
     .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
     .btn{padding:10px 14px;border-radius:10px;background:#0ea5e9;color:white;border:none;cursor:pointer}
     .btn.ghost{background:transparent;border:1px solid #334155;color:#94a3b8}
+    .grid{display:grid;gap:10px}
+    .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    @media(max-width:900px){.g2,.g3{grid-template-columns:1fr}}
     .stat{background:#0b1220;border:1px solid #334155;border-radius:10px;padding:10px;margin-top:10px}
+    .small{font-size:12px;color:#94a3b8}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{border:1px solid #334155;padding:8px;text-align:left}
+    th{background:#0b1220}
     .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#111827;border:1px solid #374151;color:#e5e7eb;padding:10px 14px;border-radius:10px;opacity:0;transition:.3s}
     .toast.show{opacity:1}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>CareMarket – 퀵 리플라이 & 가격계산기</h1>
+    <h1>CareMarket – 계산기 & 템플릿 (Editable)</h1>
     <div class="tabs">
       <button class="tab active" data-tab="calc">계산기</button>
       <button class="tab" data-tab="tpl">템플릿</button>
-      <button class="tab" data-tab="settings">설정</button>
+      <button class="tab" data-tab="settings">설정(수정 가능)</button>
     </div>
 
     <section class="panel" data-panel="calc">
-      <label>국가 선택</label>
-      <select id="marketSelect">
-        <option value="VN">베트남 (VND)</option>
-        <option value="TH">태국 (THB)</option>
-        <option value="SG">싱가포르 (SGD)</option>
-      </select>
-      <label>판매가 (현지 통화)</label>
-      <input id="price" placeholder="예: 199000" type="number" />
-      <label>원가 (KRW)</label>
-      <input id="cost" placeholder="예: 12000" type="number" />
-
-      <div class="row">
-        <button class="btn" id="calcBtn">계산</button>
+      <div class="grid g3">
+        <div>
+          <label>국가</label>
+          <select id="marketSelect"></select>
+        </div>
+        <div>
+          <label>카테고리</label>
+          <select id="categorySelect"></select>
+          <div class="small">카테고리 추가/수정은 설정 탭에서 가능합니다.</div>
+        </div>
+        <div>
+          <label>판매가 (현지통화)</label>
+          <input id="price" type="number" placeholder="예: 199000" />
+        </div>
+      </div>
+      <div class="grid g3">
+        <div>
+          <label>원가 (KRW)</label>
+          <input id="cost" type="number" placeholder="예: 12000" />
+        </div>
+        <div>
+          <label>수수료 계산 기준</label>
+          <select id="feeBase">
+            <option value="price" selected>판매가(price)</option>
+            <option value="price_minus_ship">판매가 - 배송비</option>
+          </select>
+          <div class="small">일부 규정에 맞춰 선택</div>
+        </div>
+        <div class="row" style="align-items:flex-end">
+          <button class="btn" id="calcBtn">계산</button>
+          <button class="btn ghost" id="saveBtn">입력 저장</button>
+        </div>
       </div>
       <div id="result" class="stat"></div>
     </section>
 
     <section class="panel" data-panel="tpl" hidden>
-      <label>언어 선택</label>
-      <select id="langSelect">
-        <option value="ko">한국어</option>
-        <option value="vi">베트남어</option>
-        <option value="th">태국어</option>
-        <option value="en">영어</option>
-      </select>
-      <label>상황 선택</label>
-      <select id="tagSelect"></select>
-      <textarea id="tplText"></textarea>
+      <div class="grid g2">
+        <div>
+          <label>언어</label>
+          <select id="langSelect">
+            <option value="ko">한국어</option>
+            <option value="vi">베트남어</option>
+            <option value="th">태국어</option>
+            <option value="en">영어</option>
+          </select>
+        </div>
+        <div>
+          <label>상황</label>
+          <select id="tagSelect"></select>
+        </div>
+      </div>
+      <textarea id="tplText" style="margin-top:10px"></textarea>
       <div class="row">
         <button class="btn" id="copyBtn">복사하기</button>
+        <button class="btn ghost" id="addTplBtn">템플릿 추가</button>
+        <button class="btn ghost" id="delTplBtn">삭제</button>
       </div>
     </section>
 
     <section class="panel" data-panel="settings" hidden>
-      <h3>기본 설정</h3>
-      <ul style="font-size:14px;line-height:1.6">
-        <li>🇻🇳 베트남: 커미션 3% + 거래 4.63% + 플랫폼 인프라 3,000₫/건 · 배송비 20,000₫ · 환율 1KRW=18.5₫</li>
-        <li>🇹🇭 태국: 커미션 7% + 거래 3% + 플랫폼 1฿/건 · 배송비 30฿ · 환율 1KRW=0.027฿</li>
-        <li>🇸🇬 싱가포르: 커미션 7.63% + 거래 2.18% · 배송비 3SGD · 환율 1KRW=0.001SGD</li>
-        <li style="color:#94a3b8">* 카테고리/프로그램(Free Shipping, Coins Cashback, Shopee Mall 등)에 따라 실제 수수료가 달라질 수 있습니다. 설정 탭에서 값 수정 가능합니다.</li>
-      </ul>
+      <h3>국가(마켓) 수수료·배송비·환율</h3>
+      <div class="small">모든 값은 로컬에 저장됩니다.</div>
+      <table id="marketTable">
+        <thead>
+          <tr>
+            <th>코드</th><th>이름</th><th>통화</th><th>커미션%</th><th>거래%</th><th>플랫폼고정</th><th>배송비</th><th>환율(KRW→현지)</th><th>삭제</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="row">
+        <button class="btn" id="addMarketBtn">+ 국가 추가</button>
+        <button class="btn ghost" id="saveMarketsBtn">저장</button>
+        <button class="btn ghost" id="resetMarketsBtn">기본값 복원</button>
+      </div>
+
+      <h3 style="margin-top:20px">카테고리(추가 수수료%)</h3>
+      <table id="categoryTable">
+        <thead>
+          <tr><th>카테고리명</th><th>추가 수수료%</th><th>삭제</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="row">
+        <button class="btn" id="addCategoryBtn">+ 카테고리 추가</button>
+        <button class="btn ghost" id="saveCategoriesBtn">저장</button>
+        <button class="btn ghost" id="resetCategoriesBtn">기본값 복원</button>
+      </div>
     </section>
   </div>
+
   <div class="toast" id="toast"></div>
 
   <script>
-  // ---------- Data ----------
-  const templates = {
-    ko: {
-      '배송지연 안내': '안녕하세요 {name}님, 한국은 현재 명절 기간이라 배송이 {date}부터 재개됩니다. 기다려주셔서 감사합니다.',
-      '재고부족 안내': '{name}님, 요청하신 상품은 현재 일시 품절 상태입니다. {date}경 입고 예정입니다.',
-    },
-    vi: {
-      'Thông báo trễ giao hàng': 'Xin chào {name}, hiện Hàn Quốc đang trong kỳ nghỉ lễ. Đơn hàng của bạn sẽ được gửi từ ngày {date}. Cảm ơn bạn đã thông cảm.',
-      'Hết hàng tạm thời': 'Xin lỗi {name}, sản phẩm bạn muốn tạm hết hàng. Dự kiến có lại vào {date}.',
-    },
-    th: {
-      'แจ้งล่าช้า': 'สวัสดี {name} ขณะนี้เป็นช่วงวันหยุดของเกาหลี สินค้าจะเริ่มจัดส่งตั้งแต่วันที่ {date} ขอบคุณค่ะ',
-      'สินค้าหมดชั่วคราว': 'ขอโทษค่ะ {name} สินค้าหมดชั่วคราว จะกลับมาในวันที่ {date}',
-    },
-    en: {
-      'Shipping delay': 'Hello {name}, due to the Korean holiday, your order will be shipped starting from {date}. Thank you for your patience.',
-      'Out of stock': 'Dear {name}, the product is currently out of stock and will be restocked around {date}.',
-    }
+  const STORAGE_KEYS = {
+    markets: 'cm_edit_markets',
+    categories: 'cm_edit_categories',
+    templates: 'cm_edit_templates',
+    lastInputs: 'cm_edit_lastinputs'
+  };
+  const LS = {
+    get: (k,d)=>{try{return JSON.parse(localStorage.getItem(k)) ?? d}catch{return d}},
+    set: (k,v)=>localStorage.setItem(k, JSON.stringify(v))
   };
 
-  const feeData = {
-    // VN & TH from Cube Asia take-rate tracker (Feb 3, 2025); SG from SiteGiant (TXN 2.18% GST incl., Dec 30, 2024) + PilotoAsia (commission ranges, Jan 1, 2025)
-    VN: { currency: 'VND', commissionPct: 0.03, transPct: 0.0463, infraFixed: 3000, ship: 20000, fx: 18.5 },
-    TH: { currency: 'THB', commissionPct: 0.07, transPct: 0.03, infraFixed: 1, ship: 30, fx: 0.027 },
-    SG: { currency: 'SGD', commissionPct: 0.0763, transPct: 0.0218, infraFixed: 0, ship: 3, fx: 0.001 },
+  const DEFAULT_MARKETS = [
+    {id:'VN', name:'베트남', currency:'VND', commissionPct:0.03, transPct:0.0463, infraFixed:3000, ship:20000, fx:18.5},
+    {id:'TH', name:'태국', currency:'THB', commissionPct:0.07, transPct:0.03, infraFixed:1, ship:30, fx:0.027},
+    {id:'SG', name:'싱가포르', currency:'SGD', commissionPct:0.0763, transPct:0.0218, infraFixed:0, ship:3, fx:0.001}
+  ];
+  const DEFAULT_CATEGORIES = [
+    {name:'기본', extraPct:0},
+    {name:'Beauty/화장품', extraPct:0.00},
+    {name:'Health Supplement/건강', extraPct:0.00}
+  ];
+  const DEFAULT_TEMPLATES = {
+    ko:{'배송지연 안내':'안녕하세요 {name}님, 한국은 현재 명절 기간이라 배송이 {date}부터 재개됩니다. 기다려주셔서 감사합니다.','재고부족 안내':'{name}님, 요청하신 상품은 현재 일시 품절 상태입니다. {date}경 입고 예정입니다.'},
+    vi:{'Thông báo trễ giao hàng':'Xin chào {name}, hiện Hàn Quốc đang trong kỳ nghỉ lễ. Đơn hàng của bạn sẽ được gửi từ ngày {date}. Cảm ơn bạn đã thông cảm.','Hết hàng tạm thời':'Xin lỗi {name}, sản phẩm bạn muốn tạm hết hàng. Dự kiến có lại vào {date}.'},
+    th:{'แจ้งล่าช้า':'สวัสดี {name} ขณะนี้เป็นช่วงวันหยุดของเกาหลี สินค้าจะเริ่มจัดส่งตั้งแต่วันที่ {date} ขอบคุณค่ะ','สินค้าหมดชั่วคราว':'ขอโทษค่ะ {name} สินค้าหมดชั่วคราว จะกลับมาในวันที่ {date}'},
+    en:{'Shipping delay':'Hello {name}, due to the Korean holiday, your order will be shipped starting from {date}. Thank you for your patience.','Out of stock':'Dear {name}, the product is currently out of stock and will be restocked around {date}.'}
   };
 
-  // ---------- Helpers ----------
+  let markets = LS.get(STORAGE_KEYS.markets, DEFAULT_MARKETS);
+  let categories = LS.get(STORAGE_KEYS.categories, DEFAULT_CATEGORIES);
+  let templates = LS.get(STORAGE_KEYS.templates, DEFAULT_TEMPLATES);
+
   const $ = q => document.querySelector(q);
   const $$ = q => document.querySelectorAll(q);
   const showToast = msg => {const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1200)};
 
-  // Tabs
   $$('.tab').forEach(tab => tab.addEventListener('click', () => {
     $$('.tab').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
@@ -119,63 +179,161 @@
     $$('section.panel').forEach(sec => sec.hidden = sec.dataset.panel !== key);
   }));
 
-  // Templates UI
-  function updateTags() {
-    const lang = $('#langSelect').value;
-    const tags = Object.keys(templates[lang]);
-    const tagSel = $('#tagSelect');
-    tagSel.innerHTML = tags.map(t => `<option>${t}</option>`).join('');
-    $('#tplText').value = templates[lang][tags[0]];
+  function renderMarkets(){
+    const sel = $('#marketSelect');
+    sel.innerHTML = markets.map(m=>`<option value="${m.id}">${m.name} (${m.currency})</option>`).join('');
+    const body = $('#marketTable tbody');
+    body.innerHTML = markets.map((m,i)=>`
+      <tr>
+        <td><input data-i="${i}" data-k="id" value="${m.id}"></td>
+        <td><input data-i="${i}" data-k="name" value="${m.name}"></td>
+        <td><input data-i="${i}" data-k="currency" value="${m.currency}"></td>
+        <td><input type="number" step="0.0001" data-i="${i}" data-k="commissionPct" value="${m.commissionPct}"></td>
+        <td><input type="number" step="0.0001" data-i="${i}" data-k="transPct" value="${m.transPct}"></td>
+        <td><input type="number" step="0.01" data-i="${i}" data-k="infraFixed" value="${m.infraFixed}"></td>
+        <td><input type="number" step="0.01" data-i="${i}" data-k="ship" value="${m.ship}"></td>
+        <td><input type="number" step="0.0001" data-i="${i}" data-k="fx" value="${m.fx}"></td>
+        <td><button class="btn ghost" data-del="${i}">삭제</button></td>
+      </tr>
+    `).join('');
+    $$('#marketTable input').forEach(inp=>{
+      inp.addEventListener('input',()=>{
+        const i=+inp.dataset.i; const k=inp.dataset.k;
+        const v=(inp.type==='number')?Number(inp.value):inp.value;
+        markets[i][k]=v;
+      });
+    });
+    $$('#marketTable [data-del]').forEach(b=>b.addEventListener('click',()=>{
+      markets.splice(+b.dataset.del,1);
+      LS.set(STORAGE_KEYS.markets, markets);
+      renderMarkets();
+      showToast('삭제됨');
+    }));
   }
-  $('#langSelect').addEventListener('change', updateTags);
+  $('#addMarketBtn').addEventListener('click',()=>{
+    markets.push({id:'NEW',name:'새 국가',currency:'CUR',commissionPct:0,transPct:0,infraFixed:0,ship:0,fx:1});
+    renderMarkets();
+  });
+  $('#saveMarketsBtn').addEventListener('click',()=>{ LS.set(STORAGE_KEYS.markets,markets); renderMarkets(); showToast('저장 완료'); });
+  $('#resetMarketsBtn').addEventListener('click',()=>{ markets=[...DEFAULT_MARKETS]; LS.set(STORAGE_KEYS.markets,markets); renderMarkets(); showToast('기본값 복원'); });
+
+  function renderCategories(){
+    const sel = $('#categorySelect');
+    sel.innerHTML = categories.map((c,i)=>`<option value="${i}">${c.name} (+${(c.extraPct*100).toFixed(2)}%)</option>`).join('');
+    const body = $('#categoryTable tbody');
+    body.innerHTML = categories.map((c,i)=>`
+      <tr>
+        <td><input data-i="${i}" data-k="name" value="${c.name}"></td>
+        <td><input type="number" step="0.0001" data-i="${i}" data-k="extraPct" value="${c.extraPct}"></td>
+        <td><button class="btn ghost" data-delc="${i}">삭제</button></td>
+      </tr>
+    `).join('');
+    $$('#categoryTable input').forEach(inp=>{
+      inp.addEventListener('input',()=>{
+        const i=+inp.dataset.i; const k=inp.dataset.k;
+        const v=(inp.type==='number')?Number(inp.value):inp.value;
+        categories[i][k]=v;
+      });
+    });
+    $$('#categoryTable [data-delc]').forEach(b=>b.addEventListener('click',()=>{
+      categories.splice(+b.dataset.delc,1);
+      LS.set(STORAGE_KEYS.categories,categories);
+      renderCategories();
+      showToast('삭제됨');
+    }));
+  }
+  $('#addCategoryBtn').addEventListener('click',()=>{ categories.push({name:'새 카테고리',extraPct:0}); renderCategories(); });
+  $('#saveCategoriesBtn').addEventListener('click',()=>{ LS.set(STORAGE_KEYS.categories,categories); renderCategories(); showToast('저장 완료'); });
+  $('#resetCategoriesBtn').addEventListener('click',()=>{ categories=[...DEFAULT_CATEGORIES]; LS.set(STORAGE_KEYS.categories,categories); renderCategories(); showToast('기본값 복원'); });
+
+  function renderTemplates(){
+    const langSel = $('#langSelect');
+    const tags = Object.keys(templates[langSel.value]||{});
+    const tagSel = $('#tagSelect'); tagSel.innerHTML = tags.map(t=>`<option>${t}</option>`).join('');
+    $('#tplText').value = tags.length? templates[langSel.value][tags[0]] : '';
+  }
+  $('#langSelect').addEventListener('change', renderTemplates);
   $('#tagSelect').addEventListener('change', e => {
-    const lang = $('#langSelect').value;
-    $('#tplText').value = templates[lang][e.target.value];
+    const l=$('#langSelect').value; $('#tplText').value = templates[l][e.target.value];
   });
-  updateTags();
-
-  $('#copyBtn').addEventListener('click', async () => {
-    const text = $('#tplText').value;
-    await navigator.clipboard.writeText(text);
-    showToast('복사 완료');
+  $('#copyBtn').addEventListener('click', async ()=>{ await navigator.clipboard.writeText($('#tplText').value); showToast('복사 완료'); });
+  $('#addTplBtn').addEventListener('click',()=>{
+    const l=$('#langSelect').value;
+    const name=prompt('상황/태그 이름?','새 안내'); if(!name) return;
+    const text=prompt('메시지 본문?','Hello {name}'); if(text==null) return;
+    templates[l]=templates[l]||{}; templates[l][name]=text; LS.set(STORAGE_KEYS.templates,templates); renderTemplates(); showToast('추가됨');
+  });
+  $('#delTplBtn').addEventListener('click',()=>{
+    const l=$('#langSelect').value; const t=$('#tagSelect').value;
+    if(!l||!t) return; if(!confirm('삭제하시겠습니까?')) return;
+    delete templates[l][t]; LS.set(STORAGE_KEYS.templates,templates); renderTemplates(); showToast('삭제됨');
   });
 
-  // Calculator
-  $('#calcBtn').addEventListener('click', () => {
-    const mk = $('#marketSelect').value;
-    const {currency, commissionPct, transPct, infraFixed, ship, fx} = feeData[mk];
-    const price = Number($('#price').value || 0);
-    const costKRW = Number($('#cost').value || 0);
+  function calculate(){
+    const mkId = $('#marketSelect').value;
+    const mk = markets.find(m=>m.id===mkId) || markets[0];
+    const price = Number($('#price').value||0);
+    const costKRW = Number($('#cost').value||0);
+    const cat = categories[Number($('#categorySelect').value)||0] || categories[0];
+    const feeBaseMode = $('#feeBase').value;
 
-    const commission = price * (commissionPct || 0);
-    const transFee = price * (transPct || 0);
-    const platformFixed = infraFixed || 0; // per order fixed fee
-    const totalFee = commission + transFee + platformFixed;
-    const costLocal = costKRW * fx;
-    const profit = price - totalFee - ship - costLocal;
-    const margin = price ? (profit / price * 100).toFixed(1) : '0.0';
+    const base = (feeBaseMode==='price_minus_ship') ? Math.max(0, price - (mk.ship||0)) : price;
+
+    const commissionPct = (mk.commissionPct||0) + (cat.extraPct||0);
+    const commission = base * commissionPct;
+    const transFee = base * (mk.transPct||0);
+    const fixed = mk.infraFixed||0;
+    const totalFee = commission + transFee + fixed;
+    const costLocal = costKRW * (mk.fx||1);
+    const profit = price - totalFee - (mk.ship||0) - costLocal;
+    const margin = price ? (profit/price*100).toFixed(1) : '0.0';
 
     $('#result').innerHTML = `
-      <div>판매가: ${price.toLocaleString()} ${currency}</div>
-      <div>커미션: ${commission.toLocaleString()} ${currency} (${(commissionPct*100).toFixed(2)}%)</div>
-      <div>거래수수료: ${transFee.toLocaleString()} ${currency} (${(transPct*100).toFixed(2)}%)</div>
-      ${platformFixed?`<div>플랫폼 고정: ${platformFixed.toLocaleString()} ${currency}</div>`:''}
-      <div>총 수수료: ${totalFee.toLocaleString()} ${currency}</div>
-      <div>순이익: ${profit.toLocaleString()} ${currency}</div>
-      <div>마진율: ${margin}%</div>
+      <div>국가: <b>${mk.name}</b> (${mk.currency}) · 카테고리: <b>${cat.name}</b></div>
+      <div>수수료 기준: <b>${feeBaseMode==='price'?'판매가':'판매가-배송비'}</b></div>
+      <div>판매가: ${price.toLocaleString()} ${mk.currency}</div>
+      <div>커미션: ${commission.toLocaleString()} ${mk.currency} (${(commissionPct*100).toFixed(2)}%)</div>
+      <div>거래수수료: ${transFee.toLocaleString()} ${mk.currency} (${((mk.transPct||0)*100).toFixed(2)}%)</div>
+      ${fixed?`<div>플랫폼 고정: ${fixed.toLocaleString()} ${mk.currency}</div>`:''}
+      <div>총 수수료: ${totalFee.toLocaleString()} ${mk.currency}</div>
+      <div>원가(현지환산): ${(costLocal).toLocaleString()} ${mk.currency}</div>
+      <div>배송비: ${(mk.ship||0).toLocaleString()} ${mk.currency}</div>
+      <div style="margin-top:6px">순이익: <b>${profit.toLocaleString()} ${mk.currency}</b> · 마진: <b>${margin}%</b></div>
     `;
+
+    LS.set(STORAGE_KEYS.lastInputs,{mkId,catIndex:Number($('#categorySelect').value)||0,price,costKRW,feeBase:feeBaseMode});
+  }
+
+  $('#calcBtn').addEventListener('click', calculate);
+  $('#saveBtn').addEventListener('click', ()=>{
+    LS.set(STORAGE_KEYS.markets,markets);
+    LS.set(STORAGE_KEYS.categories,categories);
+    showToast('설정 저장');
   });
 
-  // PWA (manifest + SW)
+  function renderAll(){
+    renderMarkets();
+    renderCategories();
+    renderTemplates();
+    const li = LS.get(STORAGE_KEYS.lastInputs,null);
+    if(li){
+      $('#marketSelect').value = li.mkId || markets[0]?.id;
+      $('#categorySelect').value = String(li.catIndex||0);
+      $('#price').value = li.price||'';
+      $('#cost').value = li.costKRW||'';
+      $('#feeBase').value = li.feeBase||'price';
+    }
+  }
+  renderAll();
+
   (function createManifest(){
-    const manifest = { name:'CareMarket – Quick Reply & Calculator', short_name:'CareMarket', start_url:'./', display:'standalone', background_color:'#0b1220', theme_color:'#0ea5e9', icons:[{src:'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%230ea5e9"/><path d="M50 10l12 24 26 4-19 18 4 26-23-12-23 12 4-26L12 38l26-4 12-24z" fill="%230b1220"/></svg>', sizes:'100x100', type:'image/svg+xml'}] };
+    const manifest = { name:'CareMarket – Editable', short_name:'CareMarket', start_url:'./', display:'standalone', background_color:'#0b1220', theme_color:'#0ea5e9' };
     const blob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
     const link = document.createElement('link'); link.rel='manifest'; link.href = URL.createObjectURL(blob); document.head.appendChild(link);
   })();
-
   (function registerSW(){
     if(!('serviceWorker' in navigator)) return;
-    const swCode = `self.addEventListener('install',e=>{e.waitUntil(caches.open('cm-mvp-v1').then(c=>c.addAll(['./'])))});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})`;
+    const swCode = `self.addEventListener('install',e=>{e.waitUntil(caches.open('cm-edit-v1').then(c=>c.addAll(['./'])))});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})`;
     const blob = new Blob([swCode], {type:'text/javascript'});
     const swUrl = URL.createObjectURL(blob);
     navigator.serviceWorker.register(swUrl).catch(()=>{});
