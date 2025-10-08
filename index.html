@@ -1,201 +1,230 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <title>CareMarket v4 – 수수료/배송비/환율 설정 & 계산</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root { --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#38bdf8; }
-    *{ box-sizing:border-box; }
-    body{ background:var(--bg); color:var(--text); font-family:Inter,system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,Malgun Gothic,Arial,sans-serif; margin:24px;}
-    h1{ font-size:24px; margin:0 0 8px 0;}
-    .hint{ color:var(--muted); margin-bottom:16px; }
-    .card{ background:var(--panel); border:1px solid #1f2937; border-radius:12px; padding:16px; margin-top:16px; }
-    table{ width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:12px; }
-    thead th{ position:sticky; top:0; background:#0b1220; color:#cbd5e1; font-weight:600; padding:10px; border-bottom:1px solid #243144;}
-    tbody td{ padding:10px; border-bottom:1px solid #1f2a3a; text-align:center;}
-    input[type="number"], input[type="text"]{ width:100%; padding:6px 8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:var(--text); }
-    .row{ display:flex; gap:12px; flex-wrap:wrap; }
-    .row > div{ flex:1 1 200px; }
-    button{ background:var(--accent); border:0; color:#003041; font-weight:700; padding:10px 14px; border-radius:10px; cursor:pointer;}
-    .btn-ghost{ background:#192232; color:#cbd5e1; }
-    .right{ text-align:right;}
-    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-    .small{ font-size:12px; color:#93a4bb;}
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CareMarket v4 – 계산기 & 설정</title>
+<style>
+:root{--bg:#0f172a;--panel:#111827;--panel2:#0b1220;--text:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,Malgun Gothic,Arial,sans-serif}
+.container{max-width:1100px;margin:0 auto;padding:16px}
+.header{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap}
+.tab-btn{background:#1e293b;border:1px solid #263142;color:#cbd5e1;padding:8px 12px;border-radius:10px;cursor:pointer}
+.tab-btn.active{background:var(--accent);color:#022a3a;border-color:transparent;font-weight:700}
+.card{background:var(--panel);border:1px solid #1f2937;border-radius:12px;padding:16px;margin-top:12px}
+h1{font-size:20px;margin:0 0 6px 0}
+h2{font-size:18px;margin:0 0 12px 0}
+.small{color:var(--muted);font-size:12px}
+.row{display:flex;gap:12px;flex-wrap:wrap}
+.row>div{flex:1 1 240px;min-width:220px}
+label{display:block;font-size:14px;margin-bottom:6px}
+input,select{width:100%;padding:10px;border-radius:10px;border:1px solid #334155;background:var(--panel2);color:var(--text)}
+button{background:var(--accent);border:0;color:#062733;font-weight:700;padding:10px 14px;border-radius:10px;cursor:pointer}
+.btn-ghost{background:#192232;color:#cbd5e1}
+table{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden}
+thead th{position:sticky;top:0;background:#0b1220;color:#cbd5e1;font-weight:600;padding:10px;border-bottom:1px solid #243144}
+tbody td{padding:10px;border-bottom:1px solid #1f2a3a;text-align:center}
+.mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace}
+@media (max-width:640px){
+  .row>div{min-width:100%}
+}
+</style>
 </head>
 <body>
-  <h1>CareMarket v4</h1>
-  <div class="small">· <span class="mono">config.json</span>에서 국가별 설정을 불러와 사용 · 세금(<span class="mono">taxPct</span>) + 쇼피/PG 수수료 + 고정비까지 계산</div>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>CareMarket v4</h1>
+      <div class="small">국가 선택 후 현지 통화 기준으로 계산 · 설정은 별도 탭</div>
+    </div>
+    <div class="tabs">
+      <button id="tabCalc" class="tab-btn active" onclick="showTab('calc')">계산기</button>
+      <button id="tabSettings" class="tab-btn" onclick="showTab('settings')">설정(보기/편집)</button>
+    </div>
+  </div>
 
-  <div class="card">
-    <h2>국가(마켓) 수수료·세금·보조금·환율</h2>
-    <div class="small">표는 <span class="mono">config.json</span> 또는 로컬 저장값을 표시합니다.</div>
+  <!-- 계산기 화면 -->
+  <section id="calc" class="card">
+    <h2>계산기</h2>
+    <div class="row">
+      <div>
+        <label>국가 선택</label>
+        <select id="marketSelect"></select>
+      </div>
+      <div>
+        <label>판매가(<span id="curLabel" class="mono">현지통화</span>)</label>
+        <input id="price" type="number" step="0.01" value="15">
+      </div>
+      <div>
+        <label>원가(KRW)</label>
+        <input id="costKRW" type="number" step="1" value="5000">
+      </div>
+      <div>
+        <label>셀러부담 배송비(<span id="curLabel2" class="mono">현지통화</span>)</label>
+        <input id="sellerShip" type="number" step="0.01" value="0">
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="calculateOne()">계산하기</button>
+      <button class="btn-ghost" onclick="clearLocal()">로컬 저장값 초기화</button>
+      <button class="btn-ghost" onclick="calculateAll()">모든 국가 결과 보기</button>
+    </div>
+    <div id="result" class="card" style="margin-top:12px;"></div>
+  </section>
+
+  <!-- 설정 화면 -->
+  <section id="settings" class="card" style="display:none">
+    <h2>국가(마켓) 수수료·세금·환율 설정</h2>
+    <div class="small">표는 <span class="mono">config.json</span> 또는 로컬 저장값을 표시·저장합니다.</div>
     <table id="marketTable">
       <thead>
         <tr>
-          <th>코드</th>
-          <th>이름</th>
-          <th>통화</th>
-          <th>판매수수료</th>
-          <th>결제대행수수료</th>
-          <th>세금</th>
-          <th>PG인출 수수료</th>
-          <th>서비스수수료</th>
-          <th>플랫폼고정</th>
-          <th>배송비</th>
-          <th>환율(KRW→현지)</th>
-          <th>삭제</th>
+          <th>코드</th><th>이름</th><th>통화</th>
+          <th>판매수수료</th><th>결제대행수수료</th><th>세금</th>
+          <th>PG인출 수수료</th><th>서비스수수료</th>
+          <th>플랫폼고정</th><th>배송비</th><th>환율(KRW→현지)</th><th>삭제</th>
         </tr>
       </thead>
       <tbody></tbody>
     </table>
-  </div>
-
-  <div class="card">
-    <h2>계산기</h2>
-    <div class="row">
-      <div><label>판매가(현지통화)<br><input id="price" type="number" step="0.01" value="15"></label></div>
-      <div><label>원가(KRW)<br><input id="costKRW" type="number" step="1" value="5000"></label></div>
-      <div><label>셀러부담 배송비(현지통화)<br><input id="sellerShip" type="number" step="0.01" value="0"></label></div>
-    </div>
-    <div style="margin-top:12px;">
-      <button onclick="calculate()">계산하기</button>
-      <button class='btn-ghost' onclick="clearLocal()">로컬 저장값 초기화</button>
-    </div>
-    <div id="result" class="card" style="margin-top:16px;"></div>
-  </div>
+  </section>
+</div>
 
 <script>
-const LS_KEY = 'markets_v4_ext';
+const LS_KEY='markets_v4_ext';
+let markets=[];
+
+function showTab(id){
+  document.getElementById('calc').style.display = (id==='calc')?'block':'none';
+  document.getElementById('settings').style.display = (id==='settings')?'block':'none';
+  document.getElementById('tabCalc').classList.toggle('active', id==='calc');
+  document.getElementById('tabSettings').classList.toggle('active', id==='settings');
+}
 
 async function loadConfig(){
-  try{
-    const res = await fetch('config.json');
-    const json = await res.json();
-    let markets = json.markets || [];
-    const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
-    if(saved && Array.isArray(saved) && saved.length) markets = saved;
-    renderMarkets(markets);
-  }catch(e){
-    console.error(e);
-    renderMarkets([]);
-  }
+  const res = await fetch('config.json');
+  const data = await res.json();
+  markets = data.markets||[];
+  const saved = JSON.parse(localStorage.getItem(LS_KEY)||'null');
+  if(saved && Array.isArray(saved) && saved.length) markets = saved;
+  renderSettings(markets);
+  fillSelect(markets);
 }
 
-function persist(markets){
-  localStorage.setItem(LS_KEY, JSON.stringify(markets));
+function persist(){ localStorage.setItem(LS_KEY, JSON.stringify(markets)); }
+
+function fillSelect(arr){
+  const sel=document.getElementById('marketSelect');
+  sel.innerHTML = arr.map((m,i)=>`<option value="${i}">${m.id} · ${m.name} (${m.currency})</option>`).join('');
+  sel.addEventListener('change', ()=>updateCurrencyLabels());
+  updateCurrencyLabels();
 }
 
-function renderMarkets(markets){
-  const tbody = document.querySelector('#marketTable tbody');
-  tbody.innerHTML = markets.map((m,i)=>`
+function updateCurrencyLabels(){
+  const m = markets[document.getElementById('marketSelect').value||0];
+  const cur = m?.currency || '현지통화';
+  document.getElementById('curLabel').textContent = cur;
+  document.getElementById('curLabel2').textContent = cur;
+}
+
+function renderSettings(arr){
+  const tbody=document.querySelector('#marketTable tbody');
+  tbody.innerHTML = arr.map((m,i)=>`
     <tr>
       <td>${m.id}</td>
       <td>${m.name}</td>
       <td>${m.currency}</td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="commissionPct" value="${m.commissionPct ?? 0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="transPct" value="${m.transPct ?? 0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="taxPct" value="${m.taxPct ?? 0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="pgWithdrawPct" value="${m.pgWithdrawPct ?? 0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="servicePct" value="${m.servicePct ?? 0}"></td>
-      <td><input type="number" step="0.01" data-i="${i}" data-k="infraFixed" value="${m.infraFixed ?? 0}"></td>
-      <td><input type="number" step="0.01" data-i="${i}" data-k="ship" value="${m.ship ?? 0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="fx" value="${m.fx ?? 1}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="commissionPct" value="${m.commissionPct||0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="transPct" value="${m.transPct||0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="taxPct" value="${m.taxPct||0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="pgWithdrawPct" value="${m.pgWithdrawPct||0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="servicePct" value="${m.servicePct||0}"></td>
+      <td><input type="number" step="0.01" data-i="${i}" data-k="infraFixed" value="${m.infraFixed||0}"></td>
+      <td><input type="number" step="0.01" data-i="${i}" data-k="ship" value="${m.ship||0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="fx" value="${m.fx||1}"></td>
       <td><button class="btn-ghost" onclick="removeRow(${i})">삭제</button></td>
-    </tr>
-  `).join('');
-
+    </tr>`).join('');
   tbody.querySelectorAll('input').forEach(inp=>{
-    inp.addEventListener('input', ()=>{
-      const i = +inp.dataset.i;
-      const k = inp.dataset.k;
-      markets[i][k] = Number(inp.value);
-      persist(markets);
+    inp.addEventListener('input',()=>{
+      const i=+inp.dataset.i,k=inp.dataset.k;
+      markets[i][k]=Number(inp.value);
+      persist();
     });
   });
-
-  window._markets = markets;
-  persist(markets);
+  persist();
 }
 
 function removeRow(i){
-  const mkts = window._markets || [];
-  mkts.splice(i,1);
-  renderMarkets(mkts);
+  markets.splice(i,1);
+  renderSettings(markets);
+  fillSelect(markets);
 }
 
-function clearLocal(){
-  localStorage.removeItem(LS_KEY);
-  loadConfig();
-}
+function clearLocal(){ localStorage.removeItem(LS_KEY); loadConfig(); }
 
 function fmt(n){ return Number(n).toLocaleString(undefined,{maximumFractionDigits:4}); }
 
-function calculate(){
+function calcRow(m, price, costKRW, sellerShip){
+  const costLocal = costKRW*(m.fx||1);
+  const commission = price*(m.commissionPct||0);
+  const transFee  = price*(m.transPct||0);
+  const taxFee    = price*(m.taxPct||0);
+  const pgFee     = price*(m.pgWithdrawPct||0);
+  const service   = price*(m.servicePct||0);
+  const fixed     = (m.infraFixed||0);
+  const ship      = (m.ship||0);
+  const totalFees = commission+transFee+taxFee+pgFee+service+fixed+ship+sellerShip;
+  const profit    = price-totalFees-costLocal;
+  const margin    = price? (profit/price*100):0;
+  return {commission,transFee,taxFee,pgFee,service,fixed,ship,fx:m.fx||1,costLocal,totalFees,profit,margin};
+}
+
+function calculateOne(){
+  const i = Number(document.getElementById('marketSelect').value||0);
+  const m = markets[i];
   const price = Number(document.getElementById('price').value||0);
   const costKRW = Number(document.getElementById('costKRW').value||0);
   const sellerShip = Number(document.getElementById('sellerShip').value||0);
-  const markets = window._markets || [];
+  const r = calcRow(m,price,costKRW,sellerShip);
+  document.getElementById('result').innerHTML = `
+    <h3>${m.id} · ${m.name} (${m.currency})</h3>
+    <div class="small">판매가: <b>${fmt(price)}</b> / 원가(KRW): <b>${fmt(costKRW)}</b> / 셀러배송: <b>${fmt(sellerShip)}</b></div>
+    <table style="margin-top:8px">
+      <thead><tr>
+        <th>판매수수료</th><th>결제대행수수료</th><th>세금</th><th>PG인출</th><th>서비스</th>
+        <th>플랫폼고정</th><th>배송비</th><th>환율</th><th>원가(현지)</th><th>총수수료(+셀러배송)</th><th>순이익</th><th>마진%</th>
+      </tr></thead>
+      <tbody><tr>
+        <td>${fmt(r.commission)}</td><td>${fmt(r.transFee)}</td><td>${fmt(r.taxFee)}</td><td>${fmt(r.pgFee)}</td><td>${fmt(r.service)}</td>
+        <td>${fmt(r.fixed)}</td><td>${fmt(r.ship)}</td><td>${fmt(r.fx)}</td><td>${fmt(r.costLocal)}</td><td>${fmt(r.totalFees)}</td><td>${fmt(r.profit)}</td><td>${fmt(r.margin)}</td>
+      </tr></tbody>
+    </table>`;
+}
 
+function calculateAll(){
+  const price = Number(document.getElementById('price').value||0);
+  const costKRW = Number(document.getElementById('costKRW').value||0);
+  const sellerShip = Number(document.getElementById('sellerShip').value||0);
   const rows = markets.map(m=>{
-    const costLocal = costKRW * (m.fx||1);
-    const commission = price * (m.commissionPct||0);
-    const transFee  = price * (m.transPct||0);
-    const taxFee    = price * (m.taxPct||0);
-    const pgFee     = price * (m.pgWithdrawPct||0);
-    const service   = price * (m.servicePct||0);
-    const fixed     = (m.infraFixed||0);
-    const ship      = (m.ship||0);
-    const totalFees = commission + transFee + taxFee + pgFee + service + fixed + ship + sellerShip;
-    const profit    = price - totalFees - costLocal;
-    const margin    = price ? (profit/price*100) : 0;
-
-    return {
-      id:m.id, name:m.name, currency:m.currency,
-      commission, transFee, taxFee, pgFee, service, fixed, ship, fx:m.fx||1,
-      costLocal, sellerShip, totalFees, profit, margin
-    };
-  });
-
-  const html = `
-  <h3>결과</h3>
-  <div class="small">판매가: <b>${fmt(price)}</b>, 원가(KRW): <b>${fmt(costKRW)}</b>, 셀러부담 배송비: <b>${fmt(sellerShip)}</b></div>
-  <table>
-    <thead>
-      <tr>
+    const r = calcRow(m,price,costKRW,sellerShip);
+    return `<tr>
+      <td>${m.id}</td><td>${m.name}</td><td>${m.currency}</td>
+      <td>${fmt(r.commission)}</td><td>${fmt(r.transFee)}</td><td>${fmt(r.taxFee)}</td><td>${fmt(r.pgFee)}</td><td>${fmt(r.service)}</td>
+      <td>${fmt(r.fixed)}</td><td>${fmt(r.ship)}</td><td>${fmt(r.fx)}</td><td>${fmt(r.costLocal)}</td><td>${fmt(r.totalFees)}</td><td>${fmt(r.profit)}</td><td>${fmt(r.margin)}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('result').innerHTML = `
+    <h3>모든 국가 결과</h3>
+    <table style="margin-top:8px">
+      <thead><tr>
         <th>코드</th><th>이름</th><th>통화</th>
-        <th>판매수수료</th><th>결제대행수수료</th><th>세금</th>
-        <th>PG인출 수수료</th><th>서비스수수료</th>
-        <th>플랫폼고정</th><th>배송비</th><th>환율</th>
-        <th>원가(현지)</th><th>총수수료(+셀러배송)</th>
-        <th>순이익</th><th>마진%</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rows.map(r=>`
-        <tr>
-          <td>${r.id}</td>
-          <td>${r.name}</td>
-          <td>${r.currency}</td>
-          <td>${fmt(r.commission)}</td>
-          <td>${fmt(r.transFee)}</td>
-          <td>${fmt(r.taxFee)}</td>
-          <td>${fmt(r.pgFee)}</td>
-          <td>${fmt(r.service)}</td>
-          <td>${fmt(r.fixed)}</td>
-          <td>${fmt(r.ship)}</td>
-          <td>${fmt(r.fx)}</td>
-          <td>${fmt(r.costLocal)}</td>
-          <td>${fmt(r.totalFees)}</td>
-          <td>${fmt(r.profit)}</td>
-          <td>${fmt(r.margin)}</td>
-        </tr>
-      `).join('')}
-    </tbody>
-  </table>`;
-
-  document.getElementById('result').innerHTML = html;
+        <th>판매수수료</th><th>결제대행수수료</th><th>세금</th><th>PG인출</th><th>서비스</th>
+        <th>플랫폼고정</th><th>배송비</th><th>환율</th><th>원가(현지)</th><th>총수수료(+셀러배송)</th><th>순이익</th><th>마진%</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 loadConfig();
