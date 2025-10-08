@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CareMarket v4 – 계산기 & 설정</title>
+<!-- cache-bust to force latest HTML in GitHub Pages/CDN -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+<meta http-equiv="Pragma" content="no-cache"/>
+<meta http-equiv="Expires" content="0"/>
+<title>CareMarket v4.1 – 계산기 & 설정 (Tabs/Mobile)</title>
 <style>
 :root{--bg:#0f172a;--panel:#111827;--panel2:#0b1220;--text:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;}
 *{box-sizing:border-box}
@@ -36,7 +40,7 @@ tbody td{padding:10px;border-bottom:1px solid #1f2a3a;text-align:center}
 <div class="container">
   <div class="header">
     <div>
-      <h1>CareMarket v4</h1>
+      <h1>CareMarket v4.1 (탭/모바일)</h1>
       <div class="small">국가 선택 후 현지 통화 기준으로 계산 · 설정은 별도 탭</div>
     </div>
     <div class="tabs">
@@ -96,21 +100,22 @@ tbody td{padding:10px;border-bottom:1px solid #1f2a3a;text-align:center}
 const LS_KEY='markets_v4_ext';
 let markets=[];
 
-function showTab(id){
-  document.getElementById('calc').style.display = (id==='calc')?'block':'none';
-  document.getElementById('settings').style.display = (id==='settings')?'block':'none';
-  document.getElementById('tabCalc').classList.toggle('active', id==='calc');
-  document.getElementById('tabSettings').classList.toggle('active', id==='settings');
-}
-
+// add cache-busting to JSON fetch
 async function loadConfig(){
-  const res = await fetch('config.json');
+  const res = await fetch('config.json?v=' + Date.now());
   const data = await res.json();
   markets = data.markets||[];
   const saved = JSON.parse(localStorage.getItem(LS_KEY)||'null');
   if(saved && Array.isArray(saved) && saved.length) markets = saved;
   renderSettings(markets);
   fillSelect(markets);
+}
+
+function showTab(id){
+  document.getElementById('calc').style.display = (id==='calc')?'block':'none';
+  document.getElementById('settings').style.display = (id==='settings')?'block':'none';
+  document.getElementById('tabCalc').classList.toggle('active', id==='calc');
+  document.getElementById('tabSettings').classList.toggle('active', id==='settings');
 }
 
 function persist(){ localStorage.setItem(LS_KEY, JSON.stringify(markets)); }
