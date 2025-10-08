@@ -1,124 +1,204 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>CareMarket v4 — 세금·보조금·리워드 + config.json</title>
-<meta name="theme-color" content="#0ea5e9"/>
-<style>
-:root{--bg:#0b1220;--panel:#0f172a;--muted:#94a3b8;--text:#e5e7eb}
-*{box-sizing:border-box}body{margin:0;font-family:system-ui,Pretendard,Noto Sans KR,sans-serif;background:#0b1220;color:#e5e7eb}
-.wrap{max-width:1100px;margin:auto;padding:20px}
-h2{margin:0 0 6px 0}
-.small{color:#94a3b8;font-size:12px}
-.tabs{display:flex;gap:6px;margin:12px 0}
-.tab{padding:9px 12px;border-radius:10px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;cursor:pointer}
-.tab.active{background:#0ea5e922;border-color:#0ea5e9}
-.panel{background:#0f172a;border:1px solid #334155;border-radius:12px;padding:14px;margin-bottom:14px}
-.grid{display:grid;gap:10px}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
-@media(max-width:900px){.g3,.g2{grid-template-columns:1fr}}
-input,select,textarea{width:100%;background:#0b1220;border:1px solid #334155;color:#e5e7eb;border-radius:10px;padding:10px}
-.btn{padding:10px 12px;border-radius:10px;background:#0ea5e9;color:#fff;border:none;cursor:pointer}
-.btn.ghost{background:transparent;border:1px solid #334155;color:#94a3b8}
-.stat{background:#0b1220;border:1px solid #334155;border-radius:10px;padding:10px;margin-top:10px}
-table{width:100%;border-collapse:collapse;margin-top:8px}
-th,td{border:1px solid #334155;padding:8px;text-align:left}
-.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111827;border:1px solid #374151;color:#e5e7eb;padding:8px 12px;border-radius:10px;opacity:0;transition:.3s}
-.toast.show{opacity:1}
-kbd{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:2px 6px}
-</style>
+  <meta charset="UTF-8" />
+  <title>CareMarket v4 – 수수료/배송비/환율 설정 & 계산</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e5e7eb; --accent:#38bdf8; }
+    *{ box-sizing:border-box; }
+    body{ background:var(--bg); color:var(--text); font-family:Inter,system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,Malgun Gothic,Arial,sans-serif; margin:24px;}
+    h1{ font-size:24px; margin:0 0 8px 0;}
+    .hint{ color:var(--muted); margin-bottom:16px; }
+    .card{ background:var(--panel); border:1px solid #1f2937; border-radius:12px; padding:16px; margin-top:16px; }
+    table{ width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:12px; }
+    thead th{ position:sticky; top:0; background:#0b1220; color:#cbd5e1; font-weight:600; padding:10px; border-bottom:1px solid #243144;}
+    tbody td{ padding:10px; border-bottom:1px solid #1f2a3a; text-align:center;}
+    input[type="number"], input[type="text"]{ width:100%; padding:6px 8px; border-radius:8px; border:1px solid #334155; background:#0b1220; color:var(--text); }
+    .row{ display:flex; gap:12px; flex-wrap:wrap; }
+    .row > div{ flex:1 1 200px; }
+    button{ background:var(--accent); border:0; color:#003041; font-weight:700; padding:10px 14px; border-radius:10px; cursor:pointer;}
+    .btn-ghost{ background:#192232; color:#cbd5e1; }
+    .right{ text-align:right;}
+    .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .small{ font-size:12px; color:#93a4bb;}
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <h2>CareMarket v4</h2>
-  <div class="small">• <b>config.json</b>에서 국가별 설정을 불러와 사용 · • 세금(<b>taxPct</b>) + 쇼피보조금(<b>subsidyPct</b>) + 리워드(<b>rebatePct</b>)까지 계산</div>
+  <h1>CareMarket v4</h1>
+  <div class="small">· <span class="mono">config.json</span>에서 국가별 설정을 불러와 사용 · 세금(<span class="mono">taxPct</span>) + 쇼피/PG 수수료 + 고정비까지 계산</div>
 
-  <div class="tabs">
-    <button class="tab active" data-tab="calc">계산기</button>
-    <button class="tab" data-tab="settings">설정(보기/편집)</button>
-    <button class="tab" data-tab="about">사용법</button>
+  <div class="card">
+    <h2>국가(마켓) 수수료·세금·보조금·환율</h2>
+    <div class="small">표는 <span class="mono">config.json</span> 또는 로컬 저장값을 표시합니다.</div>
+    <table id="marketTable">
+      <thead>
+        <tr>
+          <th>코드</th>
+          <th>이름</th>
+          <th>통화</th>
+          <th>판매수수료</th>
+          <th>결제대행수수료</th>
+          <th>세금</th>
+          <th>PG인출 수수료</th>
+          <th>서비스수수료</th>
+          <th>플랫폼고정</th>
+          <th>배송비</th>
+          <th>환율(KRW→현지)</th>
+          <th>삭제</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
 
-  <section class="panel" data-panel="calc">
-    <div class="grid g3">
-      <div><label>국가</label><select id="marketSelect"></select></div>
-      <div><label>카테고리</label><select id="categorySelect"></select><div class="small">카테고리 추가 수수료(%)는 설정에서</div></div>
-      <div><label>판매가(현지)</label><input id="price" type="number" placeholder="예: 199000"/></div>
+  <div class="card">
+    <h2>계산기</h2>
+    <div class="row">
+      <div><label>판매가(현지통화)<br><input id="price" type="number" step="0.01" value="15"></label></div>
+      <div><label>원가(KRW)<br><input id="costKRW" type="number" step="1" value="5000"></label></div>
+      <div><label>셀러부담 배송비(현지통화)<br><input id="sellerShip" type="number" step="0.01" value="0"></label></div>
     </div>
-    <div class="grid g3">
-      <div><label>원가(KRW)</label><input id="cost" type="number" placeholder="예: 12000"/></div>
-      <div><label>수수료 기준</label>
-        <select id="feeBase">
-          <option value="price" selected>판매가(price)</option>
-          <option value="price_minus_ship">판매가 - 배송비</option>
-        </select>
-      </div>
-      <div style="display:flex;gap:8px;align-items:end">
-        <button class="btn" id="calcBtn">계산</button>
-        <button class="btn ghost" id="saveBtn">현재 입력 저장</button>
-      </div>
+    <div style="margin-top:12px;">
+      <button onclick="calculate()">계산하기</button>
+      <button class='btn-ghost' onclick="clearLocal()">로컬 저장값 초기화</button>
     </div>
-    <div id="result" class="stat"></div>
-  </section>
-
-  <section class="panel" data-panel="settings" hidden>
-    <h3>국가(마켓) 수수료·세금·보조금·환율</h3>
-    <div class="small">표는 <b>config.json</b> 또는 로컬 저장값을 표시합니다.</div>
-    <table id="marketTable"><thead>
-      <tr>
-        <th>코드</th><th>이름</th><th>통화</th>
-        <th>판매수수료%</th><th>결제대행수수료%</th><th>세금%</th>
-        <th>PG인출수수료%</th><th>서비스수수료%</th>
-        <th>플랫폼고정</th><th>배송비</th><th>환율(KRW→현지)</th><th>삭제</th>
-      </tr>
-    </thead><tbody></tbody></table>
-    <div style="margin-top:8px;display:flex;gap:8px">
-      <button class="btn" id="addMarketBtn">+ 국가 추가</button>
-      <button class="btn ghost" id="saveMarketsBtn">로컬 저장</button>
-      <button class="btn ghost" id="resetMarketsBtn">config.json 다시불러오기</button>
-      <button class="btn ghost" id="exportBtn">내보내기(JSON)</button>
-    </div>
-
-    <h3 style="margin-top:16px">카테고리(추가 수수료%)</h3>
-    <table id="categoryTable"><thead><tr><th>카테고리명</th><th>추가 수수료%</th><th>삭제</th></tr></thead><tbody></tbody></table>
-    <div style="margin-top:8px;display:flex;gap:8px">
-      <button class="btn" id="addCategoryBtn">+ 카테고리 추가</button>
-      <button class="btn ghost" id="saveCategoriesBtn">로컬 저장</button>
-      <button class="btn ghost" id="resetCategoriesBtn">기본값 복원</button>
-    </div>
-  </section>
-
-  <section class="panel" data-panel="about" hidden>
-    <h3>GitHub Pages에서 수정</h3>
-    <ol>
-      <li>리포에 <kbd>config.json</kbd>을 열고 숫자만 수정 → 커밋</li>
-      <li><kbd>index.html</kbd>은 수정하지 않아도 값이 자동 반영됩니다.</li>
-      <li>필요 시 설정 탭의 <b>config.json 다시불러오기</b>를 눌러 즉시 반영</li>
-    </ol>
-  </section>
-</div>
-<div class="toast" id="toast"></div>
+    <div id="result" class="card" style="margin-top:16px;"></div>
+  </div>
 
 <script>
-const KEYS={markets:'cm_v4_markets',categories:'cm_v4_categories',last:'cm_v4_last'};
-const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
-const DEFAULT_CATEGORIES=[{name:'기본',extraPct:0},{name:'Beauty/화장품',extraPct:0},{name:'Health/건강',extraPct:0}];
-let CONFIG_DEFAUL료: -${subsidy.toLocaleString()} ${mk.currency} (${((mk.subsidyPct||0)*100).toFixed(2)}%)</div>`:'')}
-    ${(mk.rebatePct?`<div>리워드/리베이트: -${rebate.toLocaleString()} ${mk.currency} (${((mk.rebatePct||0)*100).toFixed(2)}%)</div>`:'')}
-    ${(fixed?`<div>플랫폼 고정: ${fixed.toLocaleString()} ${mk.currency}</div>`:'')}
-    <div>총 수수료: ${totalFee.toLocaleString()} ${mk.currency}</div>
-    <div>원가(현지환산): ${costLocal.toLocaleString()} ${mk.currency}</div>
-    <div>배송비: ${(mk.ship||0).toLocaleString()} ${mk.currency}</div>
-    <div style="margin-top:6px">순이익: <b>${profit.toLocaleString()} ${mk.currency}</b> · 마진: <b>${margin}%</b></div>
-  `;
+const LS_KEY = 'markets_v4_ext';
 
-  LS.set(KEYS.last,{mkId,catIndex:Number($('#categorySelect').value)||0,price,costKRW,feeBase:feeBaseMode});
+async function loadConfig(){
+  try{
+    const res = await fetch('config.json');
+    const json = await res.json();
+    let markets = json.markets || [];
+    const saved = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if(saved && Array.isArray(saved) && saved.length) markets = saved;
+    renderMarkets(markets);
+  }catch(e){
+    console.error(e);
+    renderMarkets([]);
+  }
 }
-document.getElementById('calcBtn').addEventListener('click', calculate);
-document.getElementById('saveBtn').addEventListener('click', ()=>{LS.set(KEYS.markets,markets);LS.set(KEYS.categories,categories);toast('현재 값 로컬 저장');});
 
-// Minimal PWA
-(function createManifest(){const manifest={name:'CareMarket v4',short_name:'CareMarket',start_url:'./',display:'standalone',background_color:'#0b1220',theme_color:'#0ea5e9'};const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});const link=document.createElement('link');link.rel='manifest';link.href=URL.createObjectURL(blob);document.head.appendChild(link);})();
-(function registerSW(){if(!('serviceWorker' in navigator))return;const swCode=`self.addEventListener('install',e=>{e.waitUntil(caches.open('cm-v4').then(c=>c.addAll(['./'])))});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})`;const blob=new Blob([swCode],{type:'text/javascript'});const sw=URL.createObjectURL(blob);navigator.serviceWorker.register(sw).catch(()=>{});})();
+function persist(markets){
+  localStorage.setItem(LS_KEY, JSON.stringify(markets));
+}
+
+function renderMarkets(markets){
+  const tbody = document.querySelector('#marketTable tbody');
+  tbody.innerHTML = markets.map((m,i)=>`
+    <tr>
+      <td>${m.id}</td>
+      <td>${m.name}</td>
+      <td>${m.currency}</td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="commissionPct" value="${m.commissionPct ?? 0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="transPct" value="${m.transPct ?? 0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="taxPct" value="${m.taxPct ?? 0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="pgWithdrawPct" value="${m.pgWithdrawPct ?? 0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="servicePct" value="${m.servicePct ?? 0}"></td>
+      <td><input type="number" step="0.01" data-i="${i}" data-k="infraFixed" value="${m.infraFixed ?? 0}"></td>
+      <td><input type="number" step="0.01" data-i="${i}" data-k="ship" value="${m.ship ?? 0}"></td>
+      <td><input type="number" step="0.0001" data-i="${i}" data-k="fx" value="${m.fx ?? 1}"></td>
+      <td><button class="btn-ghost" onclick="removeRow(${i})">삭제</button></td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const i = +inp.dataset.i;
+      const k = inp.dataset.k;
+      markets[i][k] = Number(inp.value);
+      persist(markets);
+    });
+  });
+
+  window._markets = markets;
+  persist(markets);
+}
+
+function removeRow(i){
+  const mkts = window._markets || [];
+  mkts.splice(i,1);
+  renderMarkets(mkts);
+}
+
+function clearLocal(){
+  localStorage.removeItem(LS_KEY);
+  loadConfig();
+}
+
+function fmt(n){ return Number(n).toLocaleString(undefined,{maximumFractionDigits:4}); }
+
+function calculate(){
+  const price = Number(document.getElementById('price').value||0);
+  const costKRW = Number(document.getElementById('costKRW').value||0);
+  const sellerShip = Number(document.getElementById('sellerShip').value||0);
+  const markets = window._markets || [];
+
+  const rows = markets.map(m=>{
+    const costLocal = costKRW * (m.fx||1);
+    const commission = price * (m.commissionPct||0);
+    const transFee  = price * (m.transPct||0);
+    const taxFee    = price * (m.taxPct||0);
+    const pgFee     = price * (m.pgWithdrawPct||0);
+    const service   = price * (m.servicePct||0);
+    const fixed     = (m.infraFixed||0);
+    const ship      = (m.ship||0);
+    const totalFees = commission + transFee + taxFee + pgFee + service + fixed + ship + sellerShip;
+    const profit    = price - totalFees - costLocal;
+    const margin    = price ? (profit/price*100) : 0;
+
+    return {
+      id:m.id, name:m.name, currency:m.currency,
+      commission, transFee, taxFee, pgFee, service, fixed, ship, fx:m.fx||1,
+      costLocal, sellerShip, totalFees, profit, margin
+    };
+  });
+
+  const html = `
+  <h3>결과</h3>
+  <div class="small">판매가: <b>${fmt(price)}</b>, 원가(KRW): <b>${fmt(costKRW)}</b>, 셀러부담 배송비: <b>${fmt(sellerShip)}</b></div>
+  <table>
+    <thead>
+      <tr>
+        <th>코드</th><th>이름</th><th>통화</th>
+        <th>판매수수료</th><th>결제대행수수료</th><th>세금</th>
+        <th>PG인출 수수료</th><th>서비스수수료</th>
+        <th>플랫폼고정</th><th>배송비</th><th>환율</th>
+        <th>원가(현지)</th><th>총수수료(+셀러배송)</th>
+        <th>순이익</th><th>마진%</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rows.map(r=>`
+        <tr>
+          <td>${r.id}</td>
+          <td>${r.name}</td>
+          <td>${r.currency}</td>
+          <td>${fmt(r.commission)}</td>
+          <td>${fmt(r.transFee)}</td>
+          <td>${fmt(r.taxFee)}</td>
+          <td>${fmt(r.pgFee)}</td>
+          <td>${fmt(r.service)}</td>
+          <td>${fmt(r.fixed)}</td>
+          <td>${fmt(r.ship)}</td>
+          <td>${fmt(r.fx)}</td>
+          <td>${fmt(r.costLocal)}</td>
+          <td>${fmt(r.totalFees)}</td>
+          <td>${fmt(r.profit)}</td>
+          <td>${fmt(r.margin)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>`;
+
+  document.getElementById('result').innerHTML = html;
+}
+
+loadConfig();
 </script>
 </body>
 </html>
