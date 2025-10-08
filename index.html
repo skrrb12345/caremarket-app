@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<!-- cache-bust to force latest HTML in GitHub Pages/CDN -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
 <meta http-equiv="Pragma" content="no-cache"/>
 <meta http-equiv="Expires" content="0"/>
-<title>CareMarket v4.1 – 계산기 & 설정 (Tabs/Mobile)</title>
+<title>CareMarket v4.3 – 계산기 & 설정 (PR 다운로드/마켓별 저장/리셋)</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
-:root{--bg:#0f172a;--panel:#111827;--panel2:#0b1220;--text:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;}
+:root{--bg:#0f172a;--panel:#111827;--panel2:#0b1220;--text:#e5e7eb;--muted:#94a3b8;--accent:#38bdf8;--ok:#22c55e;--warn:#f59e0b;--danger:#ef4444;}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Apple SD Gothic Neo,Malgun Gothic,Arial,sans-serif}
 .container{max-width:1100px;margin:0 auto;padding:16px}
@@ -27,10 +28,16 @@ label{display:block;font-size:14px;margin-bottom:6px}
 input,select{width:100%;padding:10px;border-radius:10px;border:1px solid #334155;background:var(--panel2);color:var(--text)}
 button{background:var(--accent);border:0;color:#062733;font-weight:700;padding:10px 14px;border-radius:10px;cursor:pointer}
 .btn-ghost{background:#192232;color:#cbd5e1}
-table{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden}
+.btn-ok{background:var(--ok);color:#042c10}
+.btn-warn{background:var(--warn);color:#291a04}
+.btn-danger{background:var(--danger);color:#2b0e0e}
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;min-width:880px}
 thead th{position:sticky;top:0;background:#0b1220;color:#cbd5e1;font-weight:600;padding:10px;border-bottom:1px solid #243144}
 tbody td{padding:10px;border-bottom:1px solid #1f2a3a;text-align:center}
 .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace}
+.toast{position:fixed;right:16px;bottom:16px;background:#0b1220;border:1px solid #1f2a3a;padding:10px 12px;border-radius:10px;opacity:0;transition:.3s}
+.toast.show{opacity:1}
 @media (max-width:640px){
   .row>div{min-width:100%}
 }
@@ -40,8 +47,8 @@ tbody td{padding:10px;border-bottom:1px solid #1f2a3a;text-align:center}
 <div class="container">
   <div class="header">
     <div>
-      <h1>CareMarket v4.1 (탭/모바일)</h1>
-      <div class="small">국가 선택 후 현지 통화 기준으로 계산 · 설정은 별도 탭</div>
+      <h1>CareMarket v4.3 (PR다운로드 · 마켓별 저장 · 리셋)</h1>
+      <div class="small">국가 선택 후 현지 통화 기준 계산 · 설정은 별도 탭 · 로컬 저장/PR용 ZIP 다운로드 지원</div>
     </div>
     <div class="tabs">
       <button id="tabCalc" class="tab-btn active" onclick="showTab('calc')">계산기</button>
@@ -72,7 +79,6 @@ tbody td{padding:10px;border-bottom:1px solid #1f2a3a;text-align:center}
     </div>
     <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
       <button onclick="calculateOne()">계산하기</button>
-      <button class="btn-ghost" onclick="clearLocal()">로컬 저장값 초기화</button>
       <button class="btn-ghost" onclick="calculateAll()">모든 국가 결과 보기</button>
     </div>
     <div id="result" class="card" style="margin-top:12px;"></div>
@@ -81,34 +87,55 @@ tbody td{padding:10px;border-bottom:1px solid #1f2a3a;text-align:center}
   <!-- 설정 화면 -->
   <section id="settings" class="card" style="display:none">
     <h2>국가(마켓) 수수료·세금·환율 설정</h2>
-    <div class="small">표는 <span class="mono">config.json</span> 또는 로컬 저장값을 표시·저장합니다.</div>
-    <table id="marketTable">
-      <thead>
-        <tr>
-          <th>코드</th><th>이름</th><th>통화</th>
-          <th>판매수수료</th><th>결제대행수수료</th><th>세금</th>
-          <th>PG인출 수수료</th><th>서비스수수료</th>
-          <th>플랫폼고정</th><th>배송비</th><th>환율(KRW→현지)</th><th>삭제</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <div class="small">표는 <span class="mono">config.json</span> 또는 로컬 저장값을 표시합니다.</div>
+    <div class="row" style="margin:8px 0">
+      <div>
+        <label>국가 선택 (마켓별 저장/리셋 버튼에 적용)</label>
+        <select id="marketSelect2"></select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <button class="btn-ok" onclick="saveOne()">선택 마켓만 저장</button>
+        <button class="btn-warn" onclick="resetOne()">선택 마켓 기본값 복구</button>
+        <button class="btn-danger" onclick="resetAll()">전체 기본값 복구</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 12px 0">
+      <button class="btn-ok" onclick="saveLocal()">전체 저장(브라우저)</button>
+      <button class="btn-ghost" onclick="exportJSON()">설정 내보내기(JSON)</button>
+      <button class="btn-ghost" onclick="downloadPRZip()">PR용 ZIP 다운로드</button>
+      <label class="btn-warn" style="display:inline-block;cursor:pointer">
+        설정 가져오기(JSON)
+        <input id="importFile" type="file" accept="application/json" style="display:none" onchange="importJSON(event)"/>
+      </label>
+      <span id="status" class="small"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="marketTable">
+        <thead>
+          <tr>
+            <th>코드</th><th>이름</th><th>통화</th>
+            <th>판매수수료</th><th>결제대행수수료</th><th>세금</th>
+            <th>PG인출 수수료</th><th>서비스수수료</th>
+            <th>플랫폼고정</th><th>배송비</th><th>환율(KRW→현지)</th><th>삭제</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </section>
 </div>
+
+<div id="toast" class="toast"></div>
 
 <script>
 const LS_KEY='markets_v4_ext';
 let markets=[];
+let defaults=[]; // 원본 보관
 
-// add cache-busting to JSON fetch
-async function loadConfig(){
-  const res = await fetch('config.json?v=' + Date.now());
-  const data = await res.json();
-  markets = data.markets||[];
-  const saved = JSON.parse(localStorage.getItem(LS_KEY)||'null');
-  if(saved && Array.isArray(saved) && saved.length) markets = saved;
-  renderSettings(markets);
-  fillSelect(markets);
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1500);
 }
 
 function showTab(id){
@@ -118,12 +145,84 @@ function showTab(id){
   document.getElementById('tabSettings').classList.toggle('active', id==='settings');
 }
 
+async function loadConfig(){
+  const res = await fetch('config.json?v='+Date.now());
+  const data = await res.json();
+  markets = (data.markets||[]).map(x=>({...x}));
+  defaults = (data.markets||[]).map(x=>({...x})); // 깊은 복사
+  const saved = JSON.parse(localStorage.getItem(LS_KEY)||'null');
+  if(saved && Array.isArray(saved) && saved.length){ markets = saved; setStatus('로컬 저장값에서 불러옴'); }
+  else{ setStatus('config.json에서 불러옴'); }
+  renderSettings(markets);
+  fillSelects(markets);
+}
+
+function setStatus(txt){ document.getElementById('status').textContent = '상태: '+txt; }
 function persist(){ localStorage.setItem(LS_KEY, JSON.stringify(markets)); }
 
-function fillSelect(arr){
-  const sel=document.getElementById('marketSelect');
-  sel.innerHTML = arr.map((m,i)=>`<option value="${i}">${m.id} · ${m.name} (${m.currency})</option>`).join('');
-  sel.addEventListener('change', ()=>updateCurrencyLabels());
+function saveLocal(){ persist(); toast('전체 저장 완료'); setStatus('로컬 저장됨'); }
+function saveOne(){
+  const idx = Number(document.getElementById('marketSelect2').value||0);
+  const row = document.querySelectorAll('#marketTable tbody tr')[idx];
+  if(!row) return;
+  // 입력값을 markets[idx]에 반영
+  row.querySelectorAll('input').forEach(inp=>{
+    const k=inp.dataset.k; markets[idx][k]=Number(inp.value);
+  });
+  persist(); toast(markets[idx].id+' 저장됨'); setStatus('로컬 저장됨');
+}
+function resetOne(){
+  const idx = Number(document.getElementById('marketSelect2').value||0);
+  markets[idx] = {...defaults[idx]};
+  renderSettings(markets); persist();
+  fillSelects(markets);
+  toast(markets[idx].id+' 기본값 복구'); setStatus('로컬 저장됨');
+}
+function resetAll(){
+  markets = defaults.map(x=>({...x}));
+  renderSettings(markets); persist(); fillSelects(markets);
+  toast('전체 기본값 복구'); setStatus('로컬 저장됨');
+}
+
+function exportJSON(){
+  const data = JSON.stringify({markets}, null, 2);
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='config.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadPRZip(){
+  const zip = new JSZip();
+  const readme = `# CareMarket App – PR 제출용 패키지
+
+이 ZIP에는 수정된 \`config.json\` 이 포함되어 있습니다.
+
+## 업로드/PR 생성 방법
+1. 리포지토리에서 \`Add file → Upload files\`
+2. 이 ZIP을 풀어 **\`config.json\`** 파일만 업로드 → **Commit**
+3. (선택) Fork에서 작업하셨다면 **Pull request** 생성
+
+> 생성 시각: ${new Date().toLocaleString()}
+`;
+  zip.file("README-PR.md", readme);
+  zip.file("config.json", JSON.stringify({markets}, null, 2));
+  const blob = await zip.generateAsync({type:"blob"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='caremarket-pr-package.zip';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function fillSelects(arr){
+  const opts = arr.map((m,i)=>`<option value="${i}">${m.id} · ${m.name} (${m.currency})</option>`).join('');
+  const sel1=document.getElementById('marketSelect');
+  const sel2=document.getElementById('marketSelect2');
+  sel1.innerHTML = opts; sel2.innerHTML = opts;
+  sel1.addEventListener('change', updateCurrencyLabels);
   updateCurrencyLabels();
 }
 
@@ -152,22 +251,25 @@ function renderSettings(arr){
       <td><button class="btn-ghost" onclick="removeRow(${i})">삭제</button></td>
     </tr>`).join('');
   tbody.querySelectorAll('input').forEach(inp=>{
-    inp.addEventListener('input',()=>{
+    inp.addEventListener('change',()=>{
       const i=+inp.dataset.i,k=inp.dataset.k;
       markets[i][k]=Number(inp.value);
+      // per-input 저장은 보조
       persist();
+      toast('저장됨');
+      setStatus('로컬 저장됨');
     });
   });
-  persist();
 }
 
 function removeRow(i){
   markets.splice(i,1);
   renderSettings(markets);
-  fillSelect(markets);
+  fillSelects(markets);
+  persist();
+  toast('행 삭제 & 저장');
+  setStatus('로컬 저장됨');
 }
-
-function clearLocal(){ localStorage.removeItem(LS_KEY); loadConfig(); }
 
 function fmt(n){ return Number(n).toLocaleString(undefined,{maximumFractionDigits:4}); }
 
@@ -196,7 +298,7 @@ function calculateOne(){
   document.getElementById('result').innerHTML = `
     <h3>${m.id} · ${m.name} (${m.currency})</h3>
     <div class="small">판매가: <b>${fmt(price)}</b> / 원가(KRW): <b>${fmt(costKRW)}</b> / 셀러배송: <b>${fmt(sellerShip)}</b></div>
-    <table style="margin-top:8px">
+    <div class="table-wrap"><table style="margin-top:8px">
       <thead><tr>
         <th>판매수수료</th><th>결제대행수수료</th><th>세금</th><th>PG인출</th><th>서비스</th>
         <th>플랫폼고정</th><th>배송비</th><th>환율</th><th>원가(현지)</th><th>총수수료(+셀러배송)</th><th>순이익</th><th>마진%</th>
@@ -205,7 +307,7 @@ function calculateOne(){
         <td>${fmt(r.commission)}</td><td>${fmt(r.transFee)}</td><td>${fmt(r.taxFee)}</td><td>${fmt(r.pgFee)}</td><td>${fmt(r.service)}</td>
         <td>${fmt(r.fixed)}</td><td>${fmt(r.ship)}</td><td>${fmt(r.fx)}</td><td>${fmt(r.costLocal)}</td><td>${fmt(r.totalFees)}</td><td>${fmt(r.profit)}</td><td>${fmt(r.margin)}</td>
       </tr></tbody>
-    </table>`;
+    </table></div>`;
 }
 
 function calculateAll(){
@@ -222,14 +324,14 @@ function calculateAll(){
   }).join('');
   document.getElementById('result').innerHTML = `
     <h3>모든 국가 결과</h3>
-    <table style="margin-top:8px">
+    <div class="table-wrap"><table style="margin-top:8px">
       <thead><tr>
         <th>코드</th><th>이름</th><th>통화</th>
         <th>판매수수료</th><th>결제대행수수료</th><th>세금</th><th>PG인출</th><th>서비스</th>
         <th>플랫폼고정</th><th>배송비</th><th>환율</th><th>원가(현지)</th><th>총수수료(+셀러배송)</th><th>순이익</th><th>마진%</th>
       </tr></thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table></div>`;
 }
 
 loadConfig();
