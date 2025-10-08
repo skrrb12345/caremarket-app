@@ -1,69 +1,9 @@
 {
   "markets": [
-    {
-      "id": "SG",
-      "name": "싱가포르",
-      "currency": "SGD",
-      "commissionPct": 0.0763,
-      "transPct": 0.0218,
-      "taxPct": 0.08,
-      "pgWithdrawPct": 0.012,
-      "servicePct": 0.05,
-      "infraFixed": 0,
-      "ship": 3,
-      "fx": 0.001
-    },
-    {
-      "id": "MY",
-      "name": "말레이시아",
-      "currency": "MYR",
-      "commissionPct": 0.06,
-      "transPct": 0.0212,
-      "taxPct": 0.00,
-      "pgWithdrawPct": 0.0,
-      "servicePct": 0.0,
-      "infraFixed": 0,
-      "ship": 4,
-      "fx": 0.0035
-    },
-    {
-      "id": "TW",
-      "name": "대만",
-      "currency": "TWD",
-      "commissionPct": 0.06,
-      "transPct": 0.02,
-      "taxPct": 0.05,
-      "pgWithdrawPct": 0.0,
-      "servicePct": 0.0,
-      "infraFixed": 0,
-      "ship": 60,
-      "fx": 0.024
-    },
-    {
-      "id": "TH",
-      "name": "태국",
-      "currency": "THB",
-      "commissionPct": 0.07,
-      "transPct": 0.03,
-      "taxPct": 0.07,
-      "pgWithdrawPct": 0.0,
-      "servicePct": 0.0,
-      "infraFixed": 1,
-      "ship": 30,
-      "fx": 0.027
-    },
-    {
-      "id": "VN",
-      "name": "베트남",
-      "currency": "VND",
-      "commissionPct": 0.03,
-      "transPct": 0.0463,
-      "taxPct": 0.10,
-      "pgWithdrawPct": 0.0,
-      "servicePct": 0.0,
-      "infraFixed": 3000,
-      "ship": 20000,
-      "fx": 18.5
-    }
+    {"id":"SG","name":"싱가포르","currency":"SGD","commissionPct":0.0763,"transPct":0.0218,"taxPct":0.08,"pgWithdrawPct":0.012,"servicePct":0.05,"infraFixed":0,"ship":3,"fx":0.001},
+    {"id":"MY","name":"말레이시아","currency":"MYR","commissionPct":0.06,"transPct":0.0212,"taxPct":0.00,"pgWithdrawPct":0.0,"servicePct":0.0,"infraFixed":0,"ship":4,"fx":0.0035},
+    {"id":"TW","name":"대만","currency":"TWD","commissionPct":0.06,"transPct":0.02,"taxPct":0.05,"pgWithdrawPct":0.0,"servicePct":0.0,"infraFixed":0,"ship":60,"fx":0.024},
+    {"id":"TH","name":"태국","currency":"THB","commissionPct":0.07,"transPct":0.03,"taxPct":0.07,"pgWithdrawPct":0.0,"servicePct":0.0,"infraFixed":1,"ship":30,"fx":0.027},
+    {"id":"VN","name":"베트남","currency":"VND","commissionPct":0.03,"transPct":0.0463,"taxPct":0.10,"pgWithdrawPct":0.0,"servicePct":0.0,"infraFixed":3000,"ship":20000,"fx":18.5}
   ]
 }
