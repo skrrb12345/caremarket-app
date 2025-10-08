@@ -66,8 +66,8 @@ kbd{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:2px 6p
     <table id="marketTable"><thead>
       <tr>
         <th>코드</th><th>이름</th><th>통화</th>
-        <th>판매수수료</th><th>결제대행수수료</th><th>세금</th>
-        <th>PG인출수수료</th><th>서비스수수료</th>
+        <th>판매수수료%</th><th>결제대행수수료%</th><th>세금%</th>
+        <th>PG인출수수료%</th><th>서비스수수료%</th>
         <th>플랫폼고정</th><th>배송비</th><th>환율(KRW→현지)</th><th>삭제</th>
       </tr>
     </thead><tbody></tbody></table>
@@ -102,104 +102,7 @@ kbd{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:2px 6p
 const KEYS={markets:'cm_v4_markets',categories:'cm_v4_categories',last:'cm_v4_last'};
 const LS={get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))};
 const DEFAULT_CATEGORIES=[{name:'기본',extraPct:0},{name:'Beauty/화장품',extraPct:0},{name:'Health/건강',extraPct:0}];
-let CONFIG_DEFAULT={"markets":[
-  {"id":"SG","name":"싱가포르","currency":"SGD","commissionPct":0.0763,"transPct":0.0218,"taxPct":0.08,"subsidyPct":0,"rebatePct":0,"infraFixed":0,"ship":3,"fx":0.001},
-  {"id":"MY","name":"말레이시아","currency":"MYR","commissionPct":0.06,"transPct":0.0212,"taxPct":0.00,"subsidyPct":0,"rebatePct":0,"infraFixed":0,"ship":4,"fx":0.0035},
-  {"id":"TW","name":"대만","currency":"TWD","commissionPct":0.06,"transPct":0.02,"taxPct":0.05,"subsidyPct":0,"rebatePct":0,"infraFixed":0,"ship":60,"fx":0.024},
-  {"id":"TH","name":"태국","currency":"THB","commissionPct":0.07,"transPct":0.03,"taxPct":0.07,"subsidyPct":0,"rebatePct":0,"infraFixed":1,"ship":30,"fx":0.027},
-  {"id":"VN","name":"베트남","currency":"VND","commissionPct":0.03,"transPct":0.0463,"taxPct":0.10,"subsidyPct":0,"rebatePct":0,"infraFixed":3000,"ship":20000,"fx":18.5}
-]};
-let CONFIG=CONFIG_DEFAULT;
-let markets=LS.get(KEYS.markets,null);
-let categories=LS.get(KEYS.categories,DEFAULT_CATEGORIES);
-
-const $=q=>document.querySelector(q), $$=q=>document.querySelectorAll(q);
-const toast=msg=>{const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1100)};
-
-// Load config.json from same path
-fetch('config.json').then(r=>r.ok?r.json():CONFIG_DEFAULT).then(cfg=>{CONFIG=cfg||CONFIG_DEFAULT; if(!markets){markets=CONFIG.markets;} renderAll();}).catch(()=>{if(!markets){markets=CONFIG_DEFAULT.markets} renderAll();});
-
-// Tabs
-$$('.tab').forEach(tab=>tab.addEventListener('click',()=>{$$('.tab').forEach(t=>t.classList.remove('active'));tab.classList.add('active');const k=tab.dataset.tab;$$('section.panel').forEach(s=>s.hidden=s.dataset.panel!==k);}));
-
-function renderMarkets(){
-  $('#marketSelect').innerHTML=(markets||[]).map(m=>`<option value="${m.id}">${m.name} (${m.currency})</option>`).join('');
-  const body=$('#marketTable tbody');
-  body.innerHTML=(markets||[]).map((m,i)=>`
-    <tr>
-      <td><input data-i="${i}" data-k="id" value="${m.id}"></td>
-      <td><input data-i="${i}" data-k="name" value="${m.name}"></td>
-      <td><input data-i="${i}" data-k="currency" value="${m.currency}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="commissionPct" value="${m.commissionPct||0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="transPct" value="${m.transPct||0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="taxPct" value="${m.taxPct||0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="subsidyPct" value="${m.subsidyPct||0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="rebatePct" value="${m.rebatePct||0}"></td>
-      <td><input type="number" step="0.01" data-i="${i}" data-k="infraFixed" value="${m.infraFixed||0}"></td>
-      <td><input type="number" step="0.01" data-i="${i}" data-k="ship" value="${m.ship||0}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="fx" value="${m.fx||1}"></td>
-      <td><button class="btn ghost" data-del="${i}">삭제</button></td>
-    </tr>`).join('');
-  $$('#marketTable input').forEach(inp=>inp.addEventListener('input',()=>{const i=+inp.dataset.i,k=inp.dataset.k;const v=(inp.type==='number')?Number(inp.value):inp.value;markets[i][k]=v;}));
-  $$('#marketTable [data-del]').forEach(b=>b.addEventListener('click',()=>{markets.splice(+b.dataset.del,1);LS.set(KEYS.markets,markets);renderMarkets();toast('삭제됨');}));
-}
-function renderCategories(){
-  $('#categorySelect').innerHTML=(categories||[]).map((c,i)=>`<option value="${i}">${c.name} (+${((c.extraPct||0)*100).toFixed(2)}%)</option>`).join('');
-  const body=$('#categoryTable tbody');
-  body.innerHTML=(categories||[]).map((c,i)=>`
-    <tr>
-      <td><input data-i="${i}" data-k="name" value="${c.name}"></td>
-      <td><input type="number" step="0.0001" data-i="${i}" data-k="extraPct" value="${c.extraPct||0}"></td>
-      <td><button class="btn ghost" data-delc="${i}">삭제</button></td>
-    </tr>`).join('');
-  $$('#categoryTable input').forEach(inp=>inp.addEventListener('input',()=>{const i=+inp.dataset.i,k=inp.dataset.k;const v=(inp.type==='number')?Number(inp.value):inp.value;categories[i][k]=v;}));
-  $$('#categoryTable [data-delc]').forEach(b=>b.addEventListener('click',()=>{categories.splice(+b.dataset.delc,1);LS.set(KEYS.categories,categories);renderCategories();toast('삭제됨');}));
-}
-function renderAll(){
-  renderMarkets(); renderCategories();
-  const li=LS.get(KEYS.last,null);
-  if(li){ $('#marketSelect').value=li.mkId||markets[0]?.id; $('#categorySelect').value=String(li.catIndex||0); $('#price').value=li.price||''; $('#cost').value=li.costKRW||''; $('#feeBase').value=li.feeBase||'price'; }
-}
-
-$('#addMarketBtn').addEventListener('click',()=>{markets.push({id:'NEW',name:'새 국가',currency:'CUR',commissionPct:0,transPct:0,taxPct:0,subsidyPct:0,rebatePct:0,infraFixed:0,ship:0,fx:1});renderMarkets();});
-$('#saveMarketsBtn').addEventListener('click',()=>{LS.set(KEYS.markets,markets);toast('로컬 저장 완료');});
-$('#resetMarketsBtn').addEventListener('click',()=>{markets=(CONFIG&&CONFIG.markets)?JSON.parse(JSON.stringify(CONFIG.markets)):markets;LS.set(KEYS.markets,markets);renderMarkets();toast('config.json 재적용');});
-$('#exportBtn').addEventListener('click',()=>{const blob=new Blob([JSON.stringify({markets},null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='markets_export.json';a.click();});
-
-$('#addCategoryBtn').addEventListener('click',()=>{categories.push({name:'새 카테고리',extraPct:0});renderCategories();});
-$('#saveCategoriesBtn').addEventListener('click',()=>{LS.set(KEYS.categories,categories);toast('로컬 저장 완료');});
-$('#resetCategoriesBtn').addEventListener('click',()=>{categories=[...DEFAULT_CATEGORIES];LS.set(KEYS.categories,categories);renderCategories();toast('기본값 복원');});
-
-function calculate(){
-  const mkId=$('#marketSelect').value;
-  const mk=markets.find(m=>m.id===mkId)||markets[0];
-  const price=Number($('#price').value||0);
-  const costKRW=Number($('#cost').value||0);
-  const cat=categories[Number($('#categorySelect').value)||0]||{extraPct:0};
-  const feeBaseMode=$('#feeBase').value;
-  const base=(feeBaseMode==='price_minus_ship')?Math.max(0, price-(mk.ship||0)):price;
-
-  const commissionPct=(mk.commissionPct||0)+(cat.extraPct||0);
-  const commission=base*commissionPct;
-  const transFee=base*(mk.transPct||0);
-  const taxFee=base*(mk.taxPct||0);
-  const subsidy=base*(mk.subsidyPct||0);
-  const rebate=base*(mk.rebatePct||0);
-  const fixed=mk.infraFixed||0;
-  const totalFee=commission+transFee+taxFee+fixed - subsidy - rebate;
-
-  const costLocal=costKRW*(mk.fx||1);
-  const profit=price - totalFee - (mk.ship||0) - costLocal;
-  const margin=price?(profit/price*100).toFixed(1):'0.0';
-
-  document.getElementById('result').innerHTML=`
-    <div>국가: <b>${mk.name}</b> (${mk.currency}) · 카테고리: <b>${cat.name||'기본'}</b></div>
-    <div>수수료 기준: <b>${feeBaseMode==='price'?'판매가':'판매가-배송비'}</b></div>
-    <div>판매가: ${price.toLocaleString()} ${mk.currency}</div>
-    <div>커미션: ${commission.toLocaleString()} ${mk.currency} (${(commissionPct*100).toFixed(2)}%)</div>
-    <div>거래수수료: ${transFee.toLocaleString()} ${mk.currency} (${((mk.transPct||0)*100).toFixed(2)}%)</div>
-    ${(mk.taxPct?`<div>세금: ${taxFee.toLocaleString()} ${mk.currency} (${((mk.taxPct||0)*100).toFixed(2)}%)</div>`:'')}
-    ${(mk.subsidyPct?`<div>보조금: -${subsidy.toLocaleString()} ${mk.currency} (${((mk.subsidyPct||0)*100).toFixed(2)}%)</div>`:'')}
+let CONFIG_DEFAUL료: -${subsidy.toLocaleString()} ${mk.currency} (${((mk.subsidyPct||0)*100).toFixed(2)}%)</div>`:'')}
     ${(mk.rebatePct?`<div>리워드/리베이트: -${rebate.toLocaleString()} ${mk.currency} (${((mk.rebatePct||0)*100).toFixed(2)}%)</div>`:'')}
     ${(fixed?`<div>플랫폼 고정: ${fixed.toLocaleString()} ${mk.currency}</div>`:'')}
     <div>총 수수료: ${totalFee.toLocaleString()} ${mk.currency}</div>
